@@ -405,6 +405,33 @@
           { "$ref": "#/definitions/custom" }
         ]
       }
+    },
+    "discovery": {
+      "type": "object",
+      "title": "Discovery",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "title": "Enable auto-discovery"
+        },
+        "exclude": {
+          "type": "array",
+          "title": "Excluded controls",
+          "items": {
+            "$ref": "#/definitions/control_field"
+          }
+        },
+        "exclude_devices": {
+          "type": "array",
+          "title": "Excluded devices",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": ["devices"],
@@ -447,7 +474,11 @@
       "Motion": "Движение",
       "Leak": "Протечка",
       "Custom": "Произвольный тип",
-      "Type": "Тип"
+      "Type": "Тип",
+      "Discovery": "Обнаружение",
+      "Enable auto-discovery": "Включить авто-обнаружение",
+      "Excluded controls": "Исключённые контролы",
+      "Excluded devices": "Исключённые устройства"
     },
     "en": {
       "Devices": "Devices",

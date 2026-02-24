@@ -1,0 +1,11 @@
+model: wb-mr6c
+vendor: Wiren Board
+description: "6-канальное реле"
+aliases:
+  - wb-mr6cu
+
+devices:
+  - name_template: "{module_title} Реле {n}"
+    type: switch
+    repeat: 6
+    control: "K{n}"

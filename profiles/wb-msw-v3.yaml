@@ -1,0 +1,20 @@
+model: wb-msw-v3
+vendor: Wiren Board
+description: "Мультисенсор (температура, влажность, освещённость, движение)"
+
+devices:
+  - name_template: "{module_title} Температура"
+    type: temperature_sensor
+    control: "Temperature"
+
+  - name_template: "{module_title} Влажность"
+    type: humidity_sensor
+    control: "Humidity"
+
+  - name_template: "{module_title} Освещённость"
+    type: illuminance_sensor
+    control: "Illuminance"
+
+  - name_template: "{module_title} Движение"
+    type: motion_sensor
+    control: "Motion"
