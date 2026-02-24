@@ -1,0 +1,459 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "title": "wb-ext-bridge",
+  "description": "Configuration for wb-ext-bridge service",
+  "configFile": {
+    "path": "/etc/wb-ext-bridge.conf",
+    "service": "wb-ext-bridge"
+  },
+  "definitions": {
+    "control_field": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[^/+#]+/[^/+#]+$",
+      "_format": "wb-autocomplete",
+      "options": {
+        "wb": {
+          "data": "devices"
+        }
+      }
+    },
+    "device_name": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Name"
+    },
+    "switch": {
+      "type": "object",
+      "title": "Switch",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["switch"],
+          "default": "switch",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Control"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "temperature_sensor": {
+      "type": "object",
+      "title": "Temperature sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["temperature_sensor"],
+          "default": "temperature_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Temperature"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "humidity_sensor": {
+      "type": "object",
+      "title": "Humidity sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["humidity_sensor"],
+          "default": "humidity_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Humidity"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "power_sensor": {
+      "type": "object",
+      "title": "Power sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["power_sensor"],
+          "default": "power_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Power"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "voltage_sensor": {
+      "type": "object",
+      "title": "Voltage sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["voltage_sensor"],
+          "default": "voltage_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Voltage"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "illuminance_sensor": {
+      "type": "object",
+      "title": "Illuminance sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["illuminance_sensor"],
+          "default": "illuminance_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Illuminance"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "binary_sensor": {
+      "type": "object",
+      "title": "Binary sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["binary_sensor"],
+          "default": "binary_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "State"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "contact_sensor": {
+      "type": "object",
+      "title": "Contact sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["contact_sensor"],
+          "default": "contact_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Contact"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "motion_sensor": {
+      "type": "object",
+      "title": "Motion sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["motion_sensor"],
+          "default": "motion_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Motion"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "leak_sensor": {
+      "type": "object",
+      "title": "Leak sensor",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["leak_sensor"],
+          "default": "leak_sensor",
+          "options": { "hidden": true }
+        },
+        "control": {
+          "$ref": "#/definitions/control_field",
+          "title": "Leak"
+        }
+      },
+      "required": ["name", "type", "control"],
+      "additionalProperties": false
+    },
+    "dimmer": {
+      "type": "object",
+      "title": "Dimmer",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["dimmer"],
+          "default": "dimmer",
+          "options": { "hidden": true }
+        },
+        "map": {
+          "type": "object",
+          "title": "Control mapping",
+          "properties": {
+            "on_off": {
+              "$ref": "#/definitions/control_field",
+              "title": "On/Off"
+            },
+            "brightness": {
+              "$ref": "#/definitions/control_field",
+              "title": "Brightness"
+            }
+          },
+          "required": ["on_off", "brightness"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "type", "map"],
+      "additionalProperties": false
+    },
+    "rgb_light": {
+      "type": "object",
+      "title": "RGB light",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["rgb_light"],
+          "default": "rgb_light",
+          "options": { "hidden": true }
+        },
+        "map": {
+          "type": "object",
+          "title": "Control mapping",
+          "properties": {
+            "on_off": {
+              "$ref": "#/definitions/control_field",
+              "title": "On/Off"
+            },
+            "color": {
+              "$ref": "#/definitions/control_field",
+              "title": "Color (RGB)"
+            },
+            "brightness": {
+              "$ref": "#/definitions/control_field",
+              "title": "Brightness"
+            }
+          },
+          "required": ["on_off", "color"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "type", "map"],
+      "additionalProperties": false
+    },
+    "thermostat": {
+      "type": "object",
+      "title": "Thermostat",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["thermostat"],
+          "default": "thermostat",
+          "options": { "hidden": true }
+        },
+        "map": {
+          "type": "object",
+          "title": "Control mapping",
+          "properties": {
+            "current_temperature": {
+              "$ref": "#/definitions/control_field",
+              "title": "Current temperature"
+            },
+            "target_temperature": {
+              "$ref": "#/definitions/control_field",
+              "title": "Target temperature"
+            },
+            "is_heating": {
+              "$ref": "#/definitions/control_field",
+              "title": "Is heating"
+            },
+            "mode": {
+              "$ref": "#/definitions/control_field",
+              "title": "Mode"
+            },
+            "on_off": {
+              "$ref": "#/definitions/control_field",
+              "title": "On/Off"
+            }
+          },
+          "required": ["current_temperature", "target_temperature"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "type", "map"],
+      "additionalProperties": false
+    },
+    "cover": {
+      "type": "object",
+      "title": "Cover (blinds/curtains)",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "enum": ["cover"],
+          "default": "cover",
+          "options": { "hidden": true }
+        },
+        "map": {
+          "type": "object",
+          "title": "Control mapping",
+          "properties": {
+            "position": {
+              "$ref": "#/definitions/control_field",
+              "title": "Position"
+            },
+            "on_off": {
+              "$ref": "#/definitions/control_field",
+              "title": "On/Off"
+            }
+          },
+          "required": ["position"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["name", "type", "map"],
+      "additionalProperties": false
+    },
+    "custom": {
+      "type": "object",
+      "title": "Custom",
+      "properties": {
+        "name": { "$ref": "#/definitions/device_name" },
+        "type": {
+          "type": "string",
+          "title": "Type",
+          "minLength": 1,
+          "not": {
+            "enum": ["switch", "dimmer", "rgb_light", "thermostat", "cover",
+                     "temperature_sensor", "humidity_sensor", "power_sensor",
+                     "voltage_sensor", "illuminance_sensor", "binary_sensor",
+                     "contact_sensor", "motion_sensor", "leak_sensor"]
+          }
+        },
+        "map": {
+          "type": "object",
+          "title": "Control mapping",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/definitions/control_field" }
+        }
+      },
+      "required": ["name", "type", "map"],
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "devices": {
+      "type": "array",
+      "title": "Devices",
+      "_format": "wb-multiple",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/switch" },
+          { "$ref": "#/definitions/dimmer" },
+          { "$ref": "#/definitions/rgb_light" },
+          { "$ref": "#/definitions/thermostat" },
+          { "$ref": "#/definitions/cover" },
+          { "$ref": "#/definitions/temperature_sensor" },
+          { "$ref": "#/definitions/humidity_sensor" },
+          { "$ref": "#/definitions/power_sensor" },
+          { "$ref": "#/definitions/voltage_sensor" },
+          { "$ref": "#/definitions/illuminance_sensor" },
+          { "$ref": "#/definitions/binary_sensor" },
+          { "$ref": "#/definitions/contact_sensor" },
+          { "$ref": "#/definitions/motion_sensor" },
+          { "$ref": "#/definitions/leak_sensor" },
+          { "$ref": "#/definitions/custom" }
+        ]
+      }
+    }
+  },
+  "required": ["devices"],
+  "additionalProperties": false,
+  "translations": {
+    "ru": {
+      "Devices": "Устройства",
+      "Name": "Имя",
+      "Control": "Контрол",
+      "Control mapping": "Привязка контролов",
+      "Switch": "Выключатель",
+      "Dimmer": "Диммер",
+      "RGB light": "RGB-лента",
+      "Thermostat": "Термостат",
+      "Cover (blinds/curtains)": "Шторы/жалюзи",
+      "Temperature sensor": "Датчик температуры",
+      "Humidity sensor": "Датчик влажности",
+      "Power sensor": "Датчик мощности",
+      "Voltage sensor": "Датчик напряжения",
+      "Illuminance sensor": "Датчик освещённости",
+      "Binary sensor": "Бинарный датчик",
+      "Contact sensor": "Датчик открытия",
+      "Motion sensor": "Датчик движения",
+      "Leak sensor": "Датчик протечки",
+      "On/Off": "Вкл/Выкл",
+      "Brightness": "Яркость",
+      "Color (RGB)": "Цвет (RGB)",
+      "Current temperature": "Текущая температура",
+      "Target temperature": "Уставка температуры",
+      "Is heating": "Нагрев активен",
+      "Mode": "Режим",
+      "Position": "Позиция",
+      "Temperature": "Температура",
+      "Humidity": "Влажность",
+      "Power": "Мощность",
+      "Voltage": "Напряжение",
+      "Illuminance": "Освещённость",
+      "State": "Состояние",
+      "Contact": "Контакт",
+      "Motion": "Движение",
+      "Leak": "Протечка",
+      "Custom": "Произвольный тип",
+      "Type": "Тип"
+    },
+    "en": {
+      "Devices": "Devices",
+      "Name": "Name",
+      "Control": "Control",
+      "Control mapping": "Control mapping"
+    }
+  }
+}
