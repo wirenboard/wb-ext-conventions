@@ -1,161 +1,92 @@
 # wb-ext-conventions
 
-> **Note:** This is a draft convention. It has not been officially adopted yet and may change significantly.
+> **Внимание:** Это черновик конвенции. Она ещё не принята официально и может существенно измениться.
 
-**Universal device abstraction layer for Wiren Board**
+**Универсальный слой абстракции устройств для Wiren Board**
 
-## Problem
+## Проблема
 
-Wiren Board represents devices as flat MQTT controls — individual topics with a single value. External platforms (Home Assistant, HomeKit, Yandex Alice) work with composite entities: a thermostat = temperature + setpoint + mode + heating.
+Wiren Board представляет устройства как плоские MQTT-контролы — отдельные топики с единственным значением. Внешние платформы (Home Assistant, HomeKit, Яндекс Алиса) работают с составными сущностями: термостат = температура + уставка + режим + нагрев.
 
-There is no standard way to declare that a set of controls from different modules forms a single device.
+Нет стандартного способа объявить, что набор контролов из разных модулей образует одно устройство.
 
-## Solution
+## Решение
 
-A canonical device model — a platform-independent intermediate representation:
+Каноническая модель устройств — платформонезависимое промежуточное представление:
 
 ```
-WB MQTT controls
+MQTT-контролы WB
        │
        ▼
-  Discovery Engine ← bindings + profiles + fallback
+  Discovery Engine ← профили + fallback (+ конфигурация)
        │
        ▼
-  Canonical devices (DeviceType + Capabilities + Properties)
-       │                        ▲
-       │                  overrides (post-processing)
+  Канонические устройства (DeviceType + Capabilities + Properties)
        │
-       ├──► Home Assistant adapter
-       ├──► HomeKit adapter
-       └──► Yandex Alice adapter
+       ├──► Адаптер Home Assistant
+       ├──► Адаптер HomeKit
+       └──► Адаптер Яндекс Алисы
 ```
 
-Three components of the convention:
+Два компонента конвенции:
 
-- **Device types** — standard (switch, dimmer, thermostat, etc.) + arbitrary custom types
-- **Discovery Engine** — automatic device detection
-- **Adapter interface** — contract for translating to the target platform's format
+- **Типы устройств** — стандартные (switch, dimmer, thermostat и т.д.) + произвольные пользовательские типы
+- **Discovery Engine** — автоматическое обнаружение устройств
 
-## Automatic Discovery
+## Типы устройств
 
-Most devices are discovered without configuration. The Discovery Engine processes controls in priority order:
+### Простые (один слот)
 
-1. **Bindings** (`bindings[]`) — manual, from config. For cross-module devices and custom types.
-2. **Module profiles** — automatic. A profile describes the structure of a known WB module and creates composite devices.
-3. **Per-control fallback** — automatic. Each remaining control becomes an individual device based on a mapping table.
+| Тип | Категория | Слот | Тип данных | Описание |
+|-----|-----------|------|------------|----------|
+| `switch` | switch | on_off | bool | Выключатель |
+| `temperature_sensor` | sensor | temperature | float | Датчик температуры |
+| `humidity_sensor` | sensor | humidity | float | Датчик влажности |
+| `power_sensor` | sensor | power | float | Датчик мощности |
+| `voltage_sensor` | sensor | voltage | float | Датчик напряжения |
+| `illuminance_sensor` | sensor | illuminance | float | Датчик освещённости |
+| `binary_sensor` | sensor | state | bool | Бинарный датчик |
+| `contact_sensor` | sensor | contact | bool | Датчик открытия |
+| `motion_sensor` | sensor | motion | bool | Датчик движения |
+| `leak_sensor` | sensor | leak | bool | Датчик протечки |
 
-A control processed at a higher level is skipped by lower levels. Module controls not covered by a profile fall through to the fallback.
+### Составные (несколько слотов)
 
-After discovery, **overrides** (`overrides[]`) are applied — changing the type or name of fallback devices.
-
-## Device Types
-
-### Simple (single slot)
-
-| Type | Category | Slot | Data type | Description |
-|------|----------|------|-----------|-------------|
-| `switch` | switch | on_off | bool | Switch |
-| `temperature_sensor` | sensor | temperature | float | Temperature sensor |
-| `humidity_sensor` | sensor | humidity | float | Humidity sensor |
-| `power_sensor` | sensor | power | float | Power sensor |
-| `voltage_sensor` | sensor | voltage | float | Voltage sensor |
-| `illuminance_sensor` | sensor | illuminance | float | Illuminance sensor |
-| `binary_sensor` | sensor | state | bool | Binary sensor |
-| `contact_sensor` | sensor | contact | bool | Contact sensor |
-| `motion_sensor` | sensor | motion | bool | Motion sensor |
-| `leak_sensor` | sensor | leak | bool | Leak sensor |
-
-### Composite (multiple slots)
-
-| Type | Category | Required slots | Optional slots |
-|------|----------|---------------|----------------|
+| Тип | Категория | Обязательные слоты | Опциональные слоты |
+|-----|-----------|-------------------|-------------------|
 | `dimmer` | light | brightness (float) | on_off (bool) |
 | `rgb_light` | light | on_off (bool), color (string) | brightness (float) |
 | `thermostat` | climate | current_temperature (float), target_temperature (float) | is_heating (bool), mode (enum), on_off (bool) |
 | `cover` | cover | position (float) | on_off (bool) |
 
-The `color` slot is a string in WB convention format `"R;G;B"` (e.g., `"255;128;0"`).
+Слот `color` — строка в формате WB `"R;G;B"` (например, `"255;128;0"`).
 
-### Custom Types
+### Пользовательские типы
 
-An arbitrary string in the `type` field, different from the reserved standard type names. An arbitrary set of slots. The adapter decides how to translate, or ignores the unknown type.
+Произвольная строка в поле `type`, отличная от зарезервированных стандартных имён. Произвольный набор слотов. Адаптер сам решает, как транслировать, или игнорирует неизвестный тип.
 
-## Configuration
+## Автоматическое обнаружение
 
-An empty config `{}` is valid — everything is discovered automatically. Config is only needed for:
+Большинство устройств обнаруживается без конфигурации. Discovery Engine использует два механизма:
 
-- **Bindings** (`bindings[]`) — cross-module composite devices and custom types
-- **Overrides** (`overrides[]`) — changing the type or name of a fallback device
-- **Discovery settings** — exclusions for controls and devices
+1. **Профили модулей** — для известных моделей WB. Профиль знает структуру модуля и собирает составные устройства (например, диммер = реле + канал яркости).
+2. **Per-control fallback** — для всего остального. Каждый оставшийся контрол становится отдельным устройством по таблице маппинга.
 
-```json
-{
-  "bindings": [
-    {
-      "name": "Living Room Thermostat",
-      "type": "thermostat",
-      "map": {
-        "current_temperature": "wb-msw-v3_1/Temperature",
-        "target_temperature": "thermostat_setpoints/living_room",
-        "is_heating": "wb-mr6cu_97/K1",
-        "mode": "thermostat_modes/living_room"
-      }
-    },
-    {
-      "name": "Living Room TV",
-      "type": "tv",
-      "map": {
-        "power": "wb-mir_1/Power",
-        "volume_up": "wb-mir_1/Volume Up",
-        "volume_down": "wb-mir_1/Volume Down",
-        "mute": "wb-mir_1/Mute"
-      }
-    }
-  ],
-  "overrides": [
-    { "control": "wb-mr6cu_97/K3", "type": "cover", "name": "Bedroom Curtains" }
-  ],
-  "discovery": {
-    "enabled": true,
-    "exclude": ["wb-mr6cu_97/K5", "wb-mr6cu_97/K6"],
-    "exclude_devices": ["system"]
-  }
-}
-```
+Контрол, обработанный профилем, пропускается fallback-ом. Контролы модуля, не покрытые профилем, проваливаются в fallback.
 
-**Binding** — `name`, `type`, and `map` (slot → WB control). For simple types with a single slot, `control` can be used instead of `map`.
+Для нестандартных случаев (кросс-модульные устройства, переопределение типов) предусмотрена [конфигурация](#конфигурация).
 
-**Override** — `control` (required), `type` and/or `name` (optional). Identifies a device by a single control, therefore only applies to fallback devices.
+### Профили модулей
 
-## Discovery Engine
+Профиль описывает, как модель устройства WB преобразуется в набор канонических устройств.
 
-Automatic discovery of Wiren Board devices and creation of canonical devices.
-
-### Priorities
-
-```
-1. Bindings (bindings[])          ← cross-module + custom
-2. Module profiles                ← known WB modules
-3. Per-control fallback           ← type → DeviceType mapping table
-```
-
-If a control is already bound at a higher level, lower levels skip it. Module controls not covered by a profile fall through to the fallback.
-
-After discovery, overrides (`overrides[]`) are applied — changing the type or name of fallback devices.
-
-When `discovery.enabled: false`, automatic discovery (profiles + fallback) is disabled; only bindings work.
-
-### Module Profiles
-
-A profile describes how a WB device model is converted into a set of canonical devices. A profile knows the module's structure and creates **composite devices** (e.g., dimmer = relay + brightness channel).
-
-#### Format
+#### Формат
 
 ```yaml
-model: wb-mdm3                          # matches MQTT name prefix
+model: wb-mdm3                          # совпадает с префиксом MQTT-имени
 vendor: Wiren Board
-description: "3-channel dimmer"
-aliases:                                 # alternative models (optional)
+description: "3-канальный диммер"
+aliases:                                 # альтернативные модели (опционально)
   - wb-mdm3-mini
 
 devices:
@@ -167,34 +98,59 @@ devices:
       brightness: "Channel {n}"
 ```
 
-Result for MQTT device `wb-mdm3_1` — 3 canonical devices:
+Результат для MQTT-устройства `wb-mdm3_1` — 3 канонических устройства:
 - `WB-MDM3 Dimmer 1` (dimmer: K1 + Channel 1)
 - `WB-MDM3 Dimmer 2` (dimmer: K2 + Channel 2)
 - `WB-MDM3 Dimmer 3` (dimmer: K3 + Channel 3)
 
-#### Fields
+#### Пример: WB-LED (режим RGB+W)
 
-| Field | Description |
-|-------|-------------|
-| `model` | Model identifier, kebab-case (e.g., `wb-mdm3`) |
-| `aliases` | Alternative models with identical structure |
-| `devices[].name_template` | Name template |
-| `devices[].type` | Canonical device type |
-| `devices[].repeat` | Repeat count (substitutes `{n}`) |
-| `devices[].control` / `map` | Single slot or slot-to-control mapping |
+```yaml
+model: wb-led
+vendor: Wiren Board
+description: "4-канальный LED-контроллер (режим RGB+W)"
 
-Template variables: `{n}`, `{module_title}`, `{device_name}`, `{address}`.
+devices:
+  - name_template: "{module_title} RGB"
+    type: rgb_light
+    map:
+      on_off: "On"
+      color: "RGB Palette"
+      brightness: "RGB Brightness"
+  - name_template: "{module_title} White"
+    type: dimmer
+    map:
+      on_off: "On"
+      brightness: "Channel 4"
+```
 
-#### Model Extraction
+Результат для MQTT-устройства `wb-led_1` — 2 канонических устройства:
+- `WB-LED RGB` (rgb_light: On + RGB Palette + RGB Brightness)
+- `WB-LED White` (dimmer: On + Channel 4)
 
-WB MQTT device names follow the convention `<model>_<address>` (regex `^(.+)_(\d+)$`). When looking up a profile, both `model` and `aliases` are checked. If the name doesn't match the pattern, profiles are not applied.
+#### Поля профиля
 
-### Per-Control Fallback
+| Поле | Описание |
+|------|----------|
+| `model` | Идентификатор модели, kebab-case (например, `wb-mdm3`) |
+| `aliases` | Альтернативные модели с идентичной структурой |
+| `devices[].name_template` | Шаблон имени |
+| `devices[].type` | Тип канонического устройства |
+| `devices[].repeat` | Количество повторений (подставляет `{n}`) |
+| `devices[].control` / `map` | Один слот или маппинг слот → контрол |
 
-If a control is not bound via a binding or a profile — one control = one canonical device.
+Переменные шаблона: `{n}`, `{module_title}`, `{device_name}`, `{address}`.
 
-| WB control type | Unit | DeviceType |
-|----------------|------|------------|
+#### Извлечение модели
+
+MQTT-имена устройств WB следуют формату `<model>_<address>` (regex `^(.+)_(\d+)$`). При поиске профиля проверяются и `model`, и `aliases`. Если имя не соответствует шаблону, профили не применяются.
+
+### Per-control fallback
+
+Если контрол не покрыт профилем — один контрол = одно каноническое устройство.
+
+| Тип контрола WB | Единица | DeviceType |
+|-----------------|---------|------------|
 | `switch` | — | `switch` |
 | `range` | — | `dimmer` |
 | `temperature` | `°C` | `temperature_sensor` |
@@ -203,120 +159,74 @@ If a control is not bound via a binding or a profile — one control = one canon
 | `voltage` | `V` | `voltage_sensor` |
 | `lux` | `lx` | `illuminance_sensor` |
 
-The control type is taken from MQTT metadata (`.../meta/type`). The unit of measurement refines the mapping for ambiguous types (e.g., `value`). Controls not in the table are ignored.
+Тип контрола берётся из метаданных MQTT (`.../meta/type`). Единица измерения уточняет маппинг для неоднозначных типов (например, `value`). Контролы, отсутствующие в таблице, игнорируются.
 
-### Exclusions
+### Исключения
 
-**Exclusions** (`discovery.exclude`, `discovery.exclude_devices`) — controls and entire MQTT devices that the engine ignores. Bindings take priority: a control in `exclude` + in `bindings[]` is processed via the binding.
+**Исключения** (`discovery.exclude`, `discovery.exclude_devices`) — контролы и целые MQTT-устройства, которые движок игнорирует.
 
-### Naming and Identifiers
+### Именование и идентификаторы
 
-| Source | Name format | ID format |
-|--------|------------|-----------|
-| Binding | `name` from config | slugify of `name` |
-| Profile | `name_template` from profile | `{device_name}_{slug(type)}_{n}` |
+| Источник | Формат имени | Формат ID |
+|----------|-------------|-----------|
+| Binding | `name` из конфига | slugify от `name` |
+| Профиль | `name_template` из профиля | `{device_name}_{slug(type)}_{n}` |
 | Fallback | `{device}/{control}` | `auto_{device}_{control}` |
-| Override | original or `name` from override | original (unchanged) |
+| Override | оригинал или `name` из override | оригинал (без изменений) |
 
-## Adapter Interface
+## Конфигурация
 
-An adapter is a component that translates canonical devices into the format of an external platform.
+Пустой конфиг `{}` валиден — всё обнаруживается автоматически. Конфигурация нужна, если требуется собрать устройство из контролов разных модулей или переопределить результат автоматического обнаружения.
 
-### Interface
+### Bindings
 
-```
-interface Adapter {
-    OnDeviceAdded(device CanonicalDevice)
-    OnStateChanged(device_id string, slot string, value any)
-    OnDeviceRemoved(device_id string)
-    SetCommandHandler(handler func(device_id string, slot string, value any))
+**Binding** связывает контролы из произвольных MQTT-устройств в одно каноническое устройство. Используется для кросс-модульных составных устройств и пользовательских типов.
+
+Формат: `name`, `type` и `map` (слот → контрол WB). Для простых типов с одним слотом можно использовать `control` вместо `map`.
+
+Bindings имеют наивысший приоритет: контрол из binding не обрабатывается профилями и fallback. Контрол, указанный одновременно в `exclude` и в `bindings[]`, обрабатывается через binding.
+
+### Overrides
+
+**Override** изменяет тип и/или имя устройства, созданного через fallback. Формат: `control` (обязательно), `type` и/или `name` (опционально). Идентифицирует устройство по одному контролу, поэтому применяется только к fallback-устройствам.
+
+Overrides применяются после обнаружения — как пост-обработка.
+
+### Пример
+
+```json
+{
+  "bindings": [
+    {
+      "name": "Термостат гостиной",
+      "type": "thermostat",
+      "map": {
+        "current_temperature": "wb-msw-v3_1/Temperature",
+        "target_temperature": "thermostat_setpoints/living_room",
+        "is_heating": "wb-mr6cu_97/K1",
+        "mode": "thermostat_modes/living_room"
+      }
+    },
+    {
+      "name": "Телевизор гостиной",
+      "type": "tv",
+      "map": {
+        "power": "wb-mir_1/Power",
+        "volume_up": "wb-mir_1/Volume Up",
+        "volume_down": "wb-mir_1/Volume Down",
+        "mute": "wb-mir_1/Mute"
+      }
+    }
+  ],
+  "overrides": [
+    { "control": "wb-mr6cu_97/K3", "type": "cover", "name": "Шторы спальни" }
+  ],
+  "discovery": {
+    "enabled": true,
+    "exclude": ["wb-mr6cu_97/K5", "wb-mr6cu_97/K6"],
+    "exclude_devices": ["system"]
+  }
 }
 ```
 
-| Method | When called |
-|--------|------------|
-| `OnDeviceAdded` | Device discovered, all required slots have received initial values |
-| `OnStateChanged` | Slot value changed (MQTT control updated) |
-| `OnDeviceRemoved` | Device removed (binding removed, module disconnected) |
-| `SetCommandHandler` | Initialization — the core sets a callback for commands from the platform |
-
-**Command flow:** platform → adapter → `handler(device_id, slot, value)` → core → MQTT publish.
-
-### CanonicalDevice
-
-```
-CanonicalDevice {
-    id:           string              // slugify of name
-    display_name: string              // name from binding, profile, or auto-generated
-    type:         string              // device type identifier
-    device_type:  DeviceType | null   // type definition (null for custom)
-    source:       string              // "binding" | "override" | "profile" | "auto"
-    properties:   map[string]any      // read-only slot values
-    capabilities: map[string]any      // read-write slot values
-}
-```
-
-### DeviceType
-
-```
-DeviceType {
-    id:       string              // "thermostat", "switch", ...
-    category: string              // "climate", "light", "switch", "cover", "sensor"
-    slots:    map[string]SlotDef
-}
-
-SlotDef {
-    data_type:   string           // "bool", "float", "enum", "string", "int"
-    access:      string           // "rw" (capability) or "ro" (property)
-    required:    bool
-    constraints: Constraints      // optional
-}
-
-Constraints {
-    min:    number
-    max:    number
-    step:   number
-    values: []string              // for enum
-}
-```
-
-The `access` field determines whether the value goes into `capabilities` (`rw`) or `properties` (`ro`).
-
-### Lifecycle
-
-```
-OnDeviceAdded(device)  →  OnStateChanged(id, slot, value) ...  →  OnDeviceRemoved(id)
-```
-
-`OnDeviceAdded` is called after all required slots have received their initial values from MQTT. At runtime, discovery may call `OnDeviceAdded` at any moment when a new MQTT device appears.
-
-### Custom Types
-
-For custom devices, `device_type = null`. The adapter receives slots as-is and decides: map to a native entity, create a generic device, or ignore.
-
-## Data Type Conversion
-
-WB MQTT transmits values as strings. The core converts them to canonical model types:
-
-| MQTT | `data_type` | Canonical type |
-|------|-------------|---------------|
-| `"0"` / `"1"` | `bool` | `false` / `true` |
-| `"23.5"` | `float` | `23.5` |
-| `"42"` | `int` | `42` |
-| `"heat"` | `enum` | `"heat"` |
-| `"255;128;0"` | `string` | `"255;128;0"` |
-
-## Example: Thermostat Path
-
-```
-MQTT controls                        Canonical device                   Platforms
-─────────────────────────            ──────────────────────             ──────────
-wb-msw-v3_1/Temperature  ──┐        CanonicalDevice:                   HA: MQTT Discovery
-thermostat_setpoints/    ──┤          type: thermostat                  HomeKit: HeaterCooler
-  living_room              ├──►      properties:                        Alice: devices.types.
-wb-mr6cu_97/K1           ──┤          current_temperature: 23.5           thermostat
-thermostat_modes/        ──┘          is_heating: true
-  living_room                        capabilities:
-                                       target_temperature: 22.0
-                                       mode: "heat"
-```
+При `discovery.enabled: false` автоматическое обнаружение (профили + fallback) отключается; работают только bindings.
