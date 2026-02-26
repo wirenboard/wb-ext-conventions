@@ -1,5 +1,7 @@
 # wb-ext-conventions
 
+> **Note:** This is a draft convention. It has not been officially adopted yet and may change significantly.
+
 **Universal device abstraction layer for Wiren Board**
 
 ## Problem
